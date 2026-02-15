@@ -47,7 +47,15 @@ export function formatSpellcastingAsTrait(spellcasting) {
     // At will
     if (spellcasting.will) {
         description += '**A voluntad:** ';
-        description += spellcasting.will.map(spell => cleanText(spell)).join(', ') + '\n\n';
+        // Algunos spells pueden ser objetos con { entry, hidden }
+        description += spellcasting.will.map(spell => {
+            if (typeof spell === 'string') {
+                return cleanText(spell);
+            } else if (typeof spell === 'object' && spell.entry) {
+                return cleanText(spell.entry);
+            }
+            return '';
+        }).filter(Boolean).join(', ') + '\n\n';
     }
     
     // Daily uses
@@ -67,7 +75,15 @@ export function formatSpellcastingAsTrait(spellcasting) {
             }
             
             description += label;
-            description += spells.map(spell => cleanText(spell)).join(', ') + '\n\n';
+            // Algunos spells pueden ser objetos con { entry, hidden }
+            description += spells.map(spell => {
+                if (typeof spell === 'string') {
+                    return cleanText(spell);
+                } else if (typeof spell === 'object' && spell.entry) {
+                    return cleanText(spell.entry);
+                }
+                return '';
+            }).filter(Boolean).join(', ') + '\n\n';
         });
     }
     
@@ -85,7 +101,15 @@ export function formatSpellcastingAsTrait(spellcasting) {
             }
             
             description += label;
-            description += spells.map(spell => cleanText(spell)).join(', ') + '\n\n';
+            // Algunos spells pueden ser objetos con { entry, hidden }
+            description += spells.map(spell => {
+                if (typeof spell === 'string') {
+                    return cleanText(spell);
+                } else if (typeof spell === 'object' && spell.entry) {
+                    return cleanText(spell.entry);
+                }
+                return '';
+            }).filter(Boolean).join(', ') + '\n\n';
         });
     }
     
