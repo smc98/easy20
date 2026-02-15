@@ -4,10 +4,9 @@
 <a id="logo">
  <figures>
  <img src="./img/logo.png" alt="Easy20" style="width: 50%; max-width: 300px; height: auto;" />
-  <figcaption>Easy20</figcaption>
  </figures>
 </a>
-
+<h1>EASY20</h1>
 ### Extensión para navegador que automatiza el rellenado de fichas de monstruos en **Nivel20**
 
 Ahorra horas de trabajo manual importando criaturas de D&D con un solo click.
