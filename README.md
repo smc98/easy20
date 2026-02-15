@@ -4,7 +4,7 @@
 <a id="logo">
  <figures>
  <img src="./img/logo.png" alt="Easy20" style="width: 50%; max-width: 300px; height: auto;" />
-  <figcaption><a href="https://www.instagram.com/thirteight__?igsh=enBqMzhyaXRqNHc2&utm_source=qr" target="blank">Ilustración hecha por el artista 38</a></figcaption>
+  <figcaption style="text-align:center;"><a href="https://www.instagram.com/thirteight__?igsh=enBqMzhyaXRqNHc2&utm_source=qr" target="blank">Ilustración hecha por el artista 38</a></figcaption>
  </figures>
 </a>
 <h1>EASY20</h1>
