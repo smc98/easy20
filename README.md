@@ -7,7 +7,7 @@
  </figures>
 </a>
 <h1>EASY20</h1>
-### Extensión para navegador que automatiza el rellenado de fichas de monstruos en **Nivel20**
+### Extensión para navegador que automatiza el rellenado de fichas de monstruos en <b>Nivel20</b>
 
 Ahorra horas de trabajo manual importando criaturas de D&D con un solo click.
 
