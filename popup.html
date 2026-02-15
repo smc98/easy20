@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy20</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📖 Easy20</h1>
+        
+        <div class="search-section">
+            <label for="monsterSearch">Buscar monstruo:</label>
+            <input type="text" id="monsterSearch" placeholder="Escribe el nombre...">
+            <select id="monsterSelect" size="10">
+                <option value="">-- Selecciona un monstruo --</option>
+            </select>
+        </div>
+
+        <div class="info-section" id="monsterInfo" style="display: none;">
+            <div class="monster-header">
+                <h2 id="monsterName"></h2>
+                <span id="monsterCR" class="cr-badge"></span>
+            </div>
+            <div class="monster-details" id="monsterDetails"></div>
+        </div>
+
+        <div class="action-section">
+            <button id="fillButton" disabled>Rellenar Formulario</button>
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="help-section">
+            <small>💡 Selecciona un monstruo y haz clic en "Rellenar Formulario" para completar la ficha en nivel20.com</small>
+        </div>
+    </div>
+    <script type="module" src="popup.js" defer></script>
+</body>
+</html>
