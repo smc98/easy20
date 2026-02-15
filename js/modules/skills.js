@@ -81,10 +81,11 @@ export function fillSkills(monster) {
                         select.dispatchEvent(new Event('change', { bubbles: true }));
                         console.log(`    ✓ Skill set to: ${skill} -> ${skillCode}`);
                         
-                        // Establecer el modificador
-                        valueInput.value = modifier;
+                        // Establecer el modificador (quitar el signo +)
+                        const cleanModifier = modifier.replace('+', '');
+                        valueInput.value = cleanModifier;
                         valueInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        console.log(`    ✓ Modifier set to: ${modifier}`);
+                        console.log(`    ✓ Modifier set to: ${cleanModifier}`);
                     } else {
                         console.warn(`    ⚠️ Could not find select or input in new field`);
                     }
