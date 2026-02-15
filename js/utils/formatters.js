@@ -140,19 +140,75 @@ export function extractCR(monster) {
 }
 
 /**
+ * Calcula el bono de competencia basado en CR
+ * @param {number|string} cr - Challenge Rating
+ * @returns {number} - Bono de competencia
+ */
+function getProficiencyBonus(cr) {
+    // Convertir CR a número si es string
+    const crNum = typeof cr === 'string' ? parseFloat(cr) : cr;
+    
+    // Tabla de bono de competencia por CR
+    if (crNum < 5) return 2;
+    if (crNum < 9) return 3;
+    if (crNum < 13) return 4;
+    if (crNum < 17) return 5;
+    if (crNum < 21) return 6;
+    if (crNum < 25) return 7;
+    if (crNum < 29) return 8;
+    return 9;
+}
+
+/**
  * Extrae iniciativa del JSON
  * @param {Object} monster - Datos del monstruo
  * @returns {string|null} - Modificador de iniciativa
  */
 export function extractInitiative(monster) {
-    // Algunos monstruos tienen initiative específica
-    if (monster.initiative) {
-        return typeof monster.initiative === 'number' 
-            ? formatModifier(monster.initiative)
-            : monster.initiative;
+    // Si no hay campo initiative, retornar null (usará DEX por defecto)
+    if (!monster.initiative) {
+        return null;
     }
+    
+    // Caso 1: Valor numérico directo (ya calculado)
+    if (typeof monster.initiative === 'number') {
+        return formatModifier(monster.initiative);
+    }
+    
+    // Caso 2: String directo (formato "+X")
+    if (typeof monster.initiative === 'string') {
+        return monster.initiative;
+    }
+    
+    // Caso 3: Objeto con proficiency o expertise
+    if (typeof monster.initiative === 'object') {
+        // Calcular modificador base de destreza
+        const dexMod = getModifier(monster.dex || 10);
+        
+        // Obtener bono de competencia
+        const profBonus = getProficiencyBonus(extractCR(monster));
+        
+        let totalBonus = dexMod;
+        
+        // Proficiency: multiplier 1 (competente)
+        if (monster.initiative.proficiency === 1) {
+            totalBonus += profBonus;
+        }
+        // Expertise: multiplier 2 (pericia/experto)
+        else if (monster.initiative.proficiency === 2) {
+            totalBonus += profBonus * 2;
+        }
+        // Otros multiplicadores posibles
+        else if (typeof monster.initiative.proficiency === 'number') {
+            totalBonus += profBonus * monster.initiative.proficiency;
+        }
+        
+        return formatModifier(totalBonus);
+    }
+    
     return null;
 }
+
 
 /**
  * Formatea lista de habilidades (lair actions, regional effects, etc.)
