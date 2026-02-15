@@ -1,5 +1,4 @@
-# Disclaimer Legal - Nivel20 Monster Auto-fill
-
+# Disclaimer Legal - Easy20
 ## AVISO IMPORTANTE
 
 Esta extensión es una **herramienta de productividad** diseñada para facilitar la gestión de partidas de Dungeons & Dragons 5ª Edición o la edición de 2024.
