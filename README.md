@@ -7,7 +7,7 @@
  </figures>
 </a>
 <h1>EASY20</h1>
-<em>[![Ilustración del artista 38](https://www.instagram.com/thirteight__?igsh=enBqMzhyaXRqNHc2&utm_source=qr)<em>
+<em><a href="https://www.instagram.com/thirteight__?igsh=enBqMzhyaXRqNHc2&utm_source=qr" target="blank">Ilustración hecha por el artista 38</a><em>
 ### Extensión para navegador que automatiza el rellenado de fichas de monstruos en <b>Nivel20</b>
 
 Ahorra horas de trabajo manual importando criaturas de D&D con un solo click.
