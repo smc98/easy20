@@ -2,7 +2,7 @@
 
 <!-- Header -->
 <a id="logo">
- <img src="./img/logo.png" alt="Easy20" style="width: 100%; max-width: 400px; height: auto;" />
+ <img src="./img/logo.png" alt="Easy20" style="width: 100%; max-width: 300px; height: auto;" />
 </a>
 
 ### Extensión para navegador que automatiza el rellenado de fichas de monstruos en **Nivel20**
