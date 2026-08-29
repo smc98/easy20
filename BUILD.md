@@ -5,9 +5,9 @@
 - [Introducción](#introducción)
 - [Arquitectura General](#arquitectura-general)
 - [Estructura del Proyecto](#estructura-del-proyecto)
+- [Servicios de Bestiario](#servicios-de-bestiario)
 - [Módulos y Responsabilidades](#módulos-y-responsabilidades)
 - [Guía de Modificación](#guía-de-modificación)
-- [Añadir Nuevas Funcionalidades](#añadir-nuevas-funcionalidades)
 - [Workflow de Desarrollo](#workflow-de-desarrollo)
 - [Testing](#testing)
 - [Build y Distribución](#build-y-distribución)
@@ -17,17 +17,20 @@
 ## Introducción
 
 Esta guía está diseñada para desarrolladores que quieran:
--  Modificar funcionalidades existentes
--  Añadir nuevos campos automatizados
--  Corregir bugs
--  Contribuir al proyecto
+
+- Modificar funcionalidades existentes
+- Añadir nuevos campos automatizados
+- Corregir bugs
+- Contribuir al proyecto
 
 ### Requisitos Previos
 
 - Conocimientos de **JavaScript ES6+** (modules, async/await)
-- Familiaridad con **Chrome Extensions API**
+- Familiaridad con **Chrome Extensions API** (MV3)
 - Comprensión básica de **DOM manipulation**
-- Editor de código (personalmente utilizo Visual Studio Code)
+- Editor de código (VS Code, Cursor, etc.)
+
+Versión actual del producto: ver `manifest.json` y [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -35,13 +38,14 @@ Esta guía está diseñada para desarrolladores que quieran:
 
 ### Script Injection Pattern
 
-La extensión usa un patrón de **inyección de scripts** para ejecutar ES6 modules en el contexto de la página:
+La extensión usa **inyección de scripts** para ejecutar ES6 modules en el contexto de la página:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Popup (popup.js)                                            │
-│ ├─ Carga JSON comprimido                                    │
-│ ├─ Muestra lista de monstruos                               │
+│ ├─ BestiaryService (fuentes dinámicas + IndexedDB)          │
+│ ├─ DiscoveryIndex (sugerir fuentes no activas)              │
+│ ├─ UI: pestañas Buscar / Fuentes                            │
 │ └─ Envía mensaje a content script                           │
 └─────────────────────────────────────────────────────────────┘
                             ↓ chrome.runtime.sendMessage
@@ -63,79 +67,101 @@ La extensión usa un patrón de **inyección de scripts** para ejecutar ES6 modu
                             ↓ import modules
 ┌─────────────────────────────────────────────────────────────┐
 │ Functional Modules (js/modules/*)                           │
-│ ├─ basic-info.js    → Nombre, tipo, tamaño, alineamiento   │
-│ ├─ ability-scores.js → STR, DEX, CON, INT, WIS, CHA        │
-│ ├─ combat-stats.js  → AC, HP, CR, iniciativa               │
-│ ├─ speeds.js        → Velocidades con condiciones          │
-│ ├─ saves-skills.js  → Sentidos, inmunidades                │
-│ ├─ saving-throws.js → Tiradas de salvación                 │
-│ ├─ skills.js        → 18 habilidades                       │
-│ ├─ traits.js        → Rasgos, acciones                     │
-│ ├─ spellcasting.js  → Conversión spellcasting → rasgo      │
-│ └─ mythic-actions.js → Acciones míticas → notas            │
-└─────────────────────────────────────────────────────────────┘
-                            ↓ uses utilities
-┌─────────────────────────────────────────────────────────────┐
-│ Utilities (js/utils/*)                                      │
-│ ├─ text-cleaner.js  →  Limpia 25+ tags de 5etools           │
-│ ├─ formatters.js    →  Formateo español, extractors         │
-│ └─ selectors.js     →  Manejo Select2, campos dinámicos     │
+│ ├─ basic-info, ability-scores, combat-stats, speeds         │
+│ ├─ saves-skills, saving-throws, skills                      │
+│ ├─ traits.js → EasyMDE/CodeMirror + copy-paste respaldo     │
+│ ├─ spellcasting.js, mythic-actions.js                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### ¿Por Qué Script Injection?
 
-Chrome Extensions Manifest V3 **NO soporta** `type="module"` en content scripts directamente. 
+Chrome Extensions Manifest V3 **no soporta** `type="module"` en content scripts directamente.
 
-**Solución:** Inyectar un `<script type="module">` en el DOM de la página, permitiendo usar ES6 modules nativamente.
+**Solución:** inyectar un `<script type="module">` en el DOM de la página.
 
-**Ventajas:**
--  ES6 modules nativos (import/export)
--  Sin bundler necesario
--  Código limpio y modular
--  Fácil debugging (archivos separados)
+**Ventajas:** ES6 nativo, sin bundler, debugging por archivo.
 
 ---
 
-##  Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
-nivel20-extension/
-├── manifest.json              # Configuración principal (Chrome)
-├── manifest-firefox.json      # Configuración Firefox
+easy20/
+├── manifest.json              # MV3 (Chrome + gecko)
 ├── content.js                 # Injector (ROOT)
-├── popup.html/css/js          # UI del popup
+├── popup.html / popup.js / style.css
 ├── icons/                     # Iconos de la extensión
 ├── img/                       # Screenshots para README
-├── data/
-│   ├── bestiary-data.json     # Original 21MB (dev only)
-│   └── bestiary-data.json.gz  # Comprimido 3.3MB (producción)
-├── lib/                       # Librerías externas (vacío, usa CDN)
 ├── js/
 │   ├── content.js             # Orchestrator
-│   ├── modules/               # 10 módulos funcionales
-│   │   ├── basic-info.js      
-│   │   ├── ability-scores.js  
-│   │   ├── combat-stats.js    
-│   │   ├── speeds.js          
-│   │   ├── saves-skills.js    
-│   │   ├── saving-throws.js   
-│   │   ├── skills.js          
-│   │   ├── traits.js          
-│   │   ├── spellcasting.js   
-│   │   └── mythic-actions.js 
-│   └── utils/                 # 3 utilidades compartidas
-│       ├── text-cleaner.js    # Limpia tags 5etools
-│       ├── formatters.js      # Formateo y extractores
-│       └── selectors.js       # Select2, campos dinámicos
-└── docs/                      # Documentación técnica
-    ├── README.md
-    ├── BUILD.md              # Este archivo
-    ├── CONTRIBUTING.md
-    ├── LICENSE
-    ├── DISCLAIMER.md
-    └── otros...
+│   ├── data/
+│   │   └── bestiary-data.json.gz   # Fallback offline (__bundled__)
+│   ├── lib/
+│   │   └── pako.esm.mjs       # Decompresión gzip
+│   ├── services/              # Carga dinámica 5etools + homebrew
+│   │   ├── bestiary-config.js
+│   │   ├── bestiary-fetch.js
+│   │   ├── bestiary-cache.js
+│   │   ├── bestiary-loader.js
+│   │   ├── bestiary-resolver.js
+│   │   ├── bestiary-service.js
+│   │   ├── brew-catalog.js
+│   │   └── discovery-index.js
+│   ├── modules/               # Relleno de ficha
+│   │   ├── basic-info.js
+│   │   ├── ability-scores.js
+│   │   ├── combat-stats.js
+│   │   ├── speeds.js
+│   │   ├── saves-skills.js
+│   │   ├── saving-throws.js
+│   │   ├── skills.js
+│   │   ├── traits.js
+│   │   ├── spellcasting.js
+│   │   └── mythic-actions.js
+│   └── utils/
+│       ├── text-cleaner.js
+│       ├── formatters.js
+│       └── selectors.js
+├── README.md
+├── BUILD.md                   # Este archivo
+├── CHANGELOG.md
+├── DISCLAIMER.md
+└── LICENSE
 ```
+
+---
+
+## Servicios de Bestiario
+
+Capa del popup: no corre en la página de Nivel20.
+
+| Archivo | Rol |
+|---------|-----|
+| `bestiary-config.js` | URLs CDN/mirror, TTL, claves de storage, defaults (`MM`, `XMM`) |
+| `bestiary-fetch.js` | `fetch` con timeout; prueba CDN y luego mirror GitHub |
+| `bestiary-cache.js` | IndexedDB (metas + payloads por fuente) |
+| `bestiary-loader.js` | Descarga e indexación oficial / brew / custom / bundled |
+| `bestiary-resolver.js` | Inline de `legendaryGroup` desde `legendarygroups.json` |
+| `bestiary-service.js` | API del popup: prefs, search, get monster, toggle fuentes |
+| `brew-catalog.js` | Índice oficial + catálogo Giddy (solo props con `monster`) |
+| `discovery-index.js` | `search/index.json` filtrado a criaturas (`c === 1`), TTL 24 h |
+
+### Flujo de datos
+
+1. Al abrir el popup se restauran preferencias (`chrome.storage.local`) y fuentes en caché.
+2. Si no hay fuentes remotas disponibles → carga `__bundled__` desde el gzip.
+3. La búsqueda trabaja sobre un **índice ligero** (nombre + fuente + id).
+4. Al seleccionar monstruo se resuelve el JSON completo (lazy) y se aplica `resolveMonsterForFill`.
+5. El monstruo se envía al content script para rellenar la ficha.
+
+### Permisos de red
+
+En `manifest.json`:
+
+- `https://nivel20.com/*`
+- `https://5e.tools/*`
+- `https://raw.githubusercontent.com/*`
 
 ---
 
@@ -149,13 +175,12 @@ nivel20-extension/
 **Responsabilidad:** Inyectar módulos ES6 en la página
 
 **¿Cuándo modificar?**
-- Cambiar comunicación popup ↔ content
-- Añadir nuevos eventos CustomEvent
-- Modificar serialización de datos
 
-**Código clave:**
+- Comunicación popup ↔ content
+- Nuevos eventos CustomEvent
+- Serialización de datos
+
 ```javascript
-// Serializar para Firefox
 const event = new CustomEvent('nivel20-fill-monster', {
     detail: JSON.stringify({ monster: request.monster })
 });
@@ -165,31 +190,13 @@ const event = new CustomEvent('nivel20-fill-monster', {
 
 #### `js/content.js` (Orchestrator)
 
-**Ubicación:** `/js/content.js`  
-**Responsabilidad:** Orquestar todos los módulos, manejar errores
+**Responsabilidad:** Orquestar módulos y errores
 
-**¿Cuándo modificar?**
-- Añadir nuevos módulos al flujo
-- Cambiar orden de ejecución
-- Modificar manejo de errores
+**Para añadir un módulo:**
 
-**Código clave:**
 ```javascript
-async function fillMonsterForm(monster) {
-    // Llamar módulos en orden
-    fillBasicInfo(monster);
-    fillAbilityScores(monster);
-    fillCombatStats(monster);
-    // ... etc
-}
-```
-
-**Para añadir un nuevo módulo:**
-```javascript
-// 1. Importar
 import { fillNewFeature } from './modules/new-feature.js';
-
-// 2. Llamar en fillMonsterForm
+// En fillMonsterForm:
 fillNewFeature(monster);
 ```
 
@@ -197,37 +204,17 @@ fillNewFeature(monster);
 
 ### Popup
 
-#### `popup.js`
+#### `popup.js` / `popup.html`
 
-**Ubicación:** `/popup.js`  
-**Responsabilidad:** UI del popup, búsqueda, envío de datos
+**Responsabilidad:** UI (Buscar / Fuentes), búsqueda, discovery, envío al content script.
+
+**No** carga ya el gzip directamente como única fuente; usa `bestiaryService` y `discoveryIndexService`.
 
 **¿Cuándo modificar?**
-- Cambiar diseño del popup
-- Añadir filtros (CR, tipo, fuente)
-- Modificar búsqueda
-- Añadir vista previa mejorada
 
-**Código clave:**
-```javascript
-// Cargar JSON comprimido
-fetch(chrome.runtime.getURL('data/bestiary-data.json.gz'))
-    .then(response => response.arrayBuffer())
-    .then(buffer => {
-        const decompressed = pako.inflate(new Uint8Array(buffer), { to: 'string' });
-        return JSON.parse(decompressed);
-    })
-```
-
-**Para añadir filtros:**
-```javascript
-// En populateMonsterSelect()
-bestiaryData
-    .filter(m => m.cr <= maxCR) // Filtro por CR
-    .forEach(monster => {
-        // Crear option...
-    });
-```
+- Diseño del popup
+- Filtros (CR, tipo, fuente)
+- Flujo de activación de fuentes
 
 ---
 
@@ -235,237 +222,61 @@ bestiaryData
 
 #### `basic-info.js`
 
-**Campos:** Nombre, Tipo, Tamaño, Alineamiento
-
-**¿Cuándo modificar?**
-- Añadir nuevos tipos de criatura
-- Modificar mapeo de tamaños/alineamientos
-- Cambiar formato de nombre
-
-**Código importante:**
-```javascript
-// Mapeo de tamaños
-const sizeMap = {
-    'T': 'Diminuto',
-    'S': 'Pequeño',
-    'M': 'Mediano',
-    // Añadir nuevos aquí
-};
-
-// Mapeo de alineamientos
-const alignmentMap = {
-    'LG': 'Legal bueno',
-    // Añadir nuevos aquí
-};
-```
-
----
+Nombre, tipo, tamaño, alineamiento. Mapas `sizeMap` / `alignmentMap`.
 
 #### `ability-scores.js`
 
-**Campos:** STR, DEX, CON, INT, WIS, CHA
-
-**¿Cuándo modificar?**
-- Raramente (las habilidades son fijas en D&D)
-- Cambiar selectores si nivel20 cambia HTML
-
-**Código:**
-```javascript
-setSelect2Value('#creature_abilities_fue', monster.str);
-setSelect2Value('#creature_abilities_des', monster.dex);
-// ...
-```
-
----
+STR–CHA vía Select2.
 
 #### `combat-stats.js`
 
-**Campos:** AC, HP, CR, Iniciativa, Percepción Pasiva
-
-**¿Cuándo modificar?**
-- Añadir nuevas estadísticas de combate
-- Modificar cálculos (iniciativa, PP)
-
-**Código:**
-```javascript
-// AC
-const [ac, acFrom] = extractAC(monster);
-setFieldValue('#creature_armor_class', ac);
-
-// CR
-const cr = extractCR(monster);
-setSelect2Value('#creature_challenge_rating', cr);
-```
-
----
+AC, HP, CR, iniciativa, percepción pasiva.
 
 #### `speeds.js`
 
-**Campos:** Walk, Fly, Swim, Burrow, Climb
-
-**¿Cuándo modificar?**
-- Añadir nuevos tipos de velocidad
-- Modificar manejo de condiciones (hover, etc.)
-
-**Código:**
-```javascript
-// Velocidad de vuelo con hover
-if (monster.speed.fly) {
-    const flySpeed = typeof monster.speed.fly === 'number' 
-        ? monster.speed.fly 
-        : monster.speed.fly.number;
-    
-    const hover = monster.speed.fly.condition?.includes('hover');
-    // ...
-}
-```
-
----
+Walk, fly, swim, burrow, climb (incl. hover).
 
 #### `saves-skills.js`
 
-**Campos:** Resistencias, Inmunidades, Vulnerabilidades, Condiciones, Sentidos, Idiomas
+Resistencias, inmunidades, vulnerabilidades, sentidos. Idiomas aún no automatizados.
 
-**¿Cuándo modificar?**
-- Implementar campo de Idiomas (actualmente no automatizado)
-- Mejorar parsing de sentidos
+#### `saving-throws.js` / `skills.js`
 
-**Para añadir Idiomas:**
+Campos dinámicos y mapeo en→es.
+
+#### `traits.js` (importante en v1.2)
+
+Rasgos, acciones, bonus, reacciones, legendary.
+
+1. Click en `a.add_fields` con la categoría correcta del template.
+2. Espera el nuevo `.creature-trait-fields`.
+3. Rellena el nombre.
+4. Espera CodeMirror y escribe con `cm.setValue(desc)` + `cm.save()`.
+5. Añade caja copy-paste (estilo “Respaldo” si el editor OK; aviso fuerte si falló).
+
 ```javascript
-// Añadir en fillSavesAndSkills()
-if (monster.languages) {
-    const languages = Array.isArray(monster.languages) 
-        ? monster.languages.join(', ') 
-        : monster.languages;
-    setFieldValue('#creature_languages', languages);
-}
-```
-
----
-
-#### `saving-throws.js`
-
-**Campos:** Tiradas de salvación (dinámico, hasta 6)
-
-**¿Cuándo modificar?**
-- Cambiar delays entre creación de campos
-- Modificar mapeo de habilidades
-
-**Código importante:**
-```javascript
-// Mapeo de habilidades en→es
-const abilityMap = {
-    'str': 'fue',
-    'dex': 'des',
-    'con': 'con',
-    'int': 'int',
-    'wis': 'sab',
-    'cha': 'car'
-};
-```
-
----
-
-#### `skills.js`
-
-**Campos:** 18 habilidades de D&D
-
-**¿Cuándo modificar?**
-- Añadir nuevas habilidades (Si se adapta otro sistema)
-- Cambiar mapeo inglés→español
-
-**Código importante:**
-```javascript
-// Mapeo completo de habilidades
-const skillMap = {
-    'acrobatics': 'acrobacias',
-    'animal handling': 'trato-con-animales',
-    'arcana': 'arcanos',
-    // ... 18 habilidades
-};
-```
-
----
-
-#### `traits.js`
-
-**Campos:** Rasgos, Acciones, Reacciones, Legendary, Bonus
-
-**¿Cuándo modificar?**
-- Cambiar delays entre rasgos
-- Modificar formato de descripciones
-- Añadir nuevas categorías
-- Mejorar identificación de campos
-
-**Código importante:**
-
-**Procesamiento secuencial global:**
-```javascript
-function fillTraitsAndAbilities(monster) {
-    // Cola de trabajos secuencial
-    const traitJobs = [];
-    
-    if (monster.trait) traitJobs.push({ traits: monster.trait, category: 'traits' });
-    if (monster.action) traitJobs.push({ traits: monster.action, category: 'actions' });
-    // ...
-    
-    processNextJob(0); // Procesa UNO POR UNO
-}
-```
-
-**Encontrar botón correcto por categoría:**
-```javascript
-// Busca el botón que tenga value="legendary_actions" en su template
-const match = template.match(/trait_category.*?value="([^"]*)"/);
-if (match && match[1] === category) {
-    addButton = button; // Botón correcto
-}
-```
-
-**Añadir rasgos recursivamente:**
-```javascript
-function addNextTrait(index) {
-    if (index >= traits.length) {
-        onComplete(); // Llamar callback cuando termina
-        return;
-    }
-    
-    // Añadir rasgo, esperar, siguiente
+async function addNextTrait(index) {
+    const beforeFields = Array.from(document.querySelectorAll('.creature-trait-fields'));
     addButton.click();
-    setTimeout(() => {
-        fillTraitFields(trait, category, index, newField);
-        setTimeout(() => addNextTrait(index + 1), 1000);
-    }, 3000);
+    const newField = await waitForNewTraitField(beforeFields);
+    await fillTraitFields(trait, category, index, newField);
+    setTimeout(() => addNextTrait(index + 1), 400);
 }
 ```
 
----
+**¿Cuándo modificar?**
+
+- Si Nivel20 cambia EasyMDE / estructura del form
+- Nuevas categorías de rasgo
+- Timing si la web va más lenta
 
 #### `spellcasting.js`
 
-**Responsabilidad:** Convertir spellcasting JSON → rasgo formateado
-
-**¿Cuándo modificar?**
-- Mejorar formato de conjuros
-- Añadir soporte para linkear los conjuros de nivel20
-
-**Código:**
-```javascript
-export function formatSpellcastingAsTrait(spellcasting) {
-    // Convierte JSON de spellcasting a texto formateado
-    // que se añade como rasgo
-}
-```
-
----
+JSON de spellcasting → rasgo de texto.
 
 #### `mythic-actions.js`
 
-**Responsabilidad:** Añadir acciones míticas al campo de notas
-
-**¿Cuándo modificar?**
-- Cambiar formato de las acciones míticas
-- Modificar el campo destino (actualmente: notas)
+Acciones míticas → notas; mismo patrón CodeMirror + copy-paste de respaldo.
 
 ---
 
@@ -473,354 +284,156 @@ export function formatSpellcastingAsTrait(spellcasting) {
 
 #### `text-cleaner.js`
 
-**Responsabilidad:** Limpiar 25+ tipos de tags de 5etools
-
-**¿Cuándo modificar?**
-- Añadir nuevos tags de 5etools
-- Mejorar las descripciones
-
-**Código:**
-```javascript
-export function cleanText(text) {
-    return text
-        .replace(/\{@actSave\s+(\w+)\}/g, (match, stat) => {
-            const statMap = {
-                'str': 'Fuerza',
-                // Añadir nuevos aquí
-            };
-            return `Tirada de Salvación de ${statMap[stat.toLowerCase()]}`;
-        })
-        // ... 25+ reemplazos más
-}
-```
-
-**Para añadir nuevo tag:**
-```javascript
-// Añadir antes del cleanup general
-.replace(/\{@newTag ([^}]+)\}/g, 'Formato deseado: $1')
-```
-
----
+Limpia 25+ tags `{@...}` de 5etools.
 
 #### `formatters.js`
 
-**Responsabilidad:** Funciones de formateo y extracción
-
-**Funciones exportadas:**
-- `formatAlignment(alignment)` - Alineamientos mapeados al español
-- `extractCR(monster)` - Extrae el VD
-- `extractAC(monster)` - Extrae CA y fuente de la CA
-- `getModifier(score)` - Calcula modificador
-- `formatModifier(mod)` - Formatea modificador (+3, -1)
-- `extractInitiative(monster)` - Calcula iniciativa
-- `formatAbilityList(list)` - Formatea listas de habilidades
-
-**¿Cuándo modificar?**
-- Añadir nuevos extractores
-- Modificar formatos
-
----
+Alineamiento, CR, AC, modificadores, iniciativa, etc.
 
 #### `selectors.js`
 
-**Responsabilidad:** Manejo de Select2 y campos dinámicos
-
-**Funciones exportadas:**
-- `setFieldValue(selector, value)` - Campo input simple
-- `setSelectValue(selector, value)` - Select nativo
-- `setSelect2Value(selector, value)` - Select2 con eventos
-
-**¿Cuándo modificar?**
-- Si nivel20 cambia de Select2 a otro plugin
-- Añadir soporte para nuevos tipos de campos
-
-**Código importante:**
-```javascript
-export function setSelect2Value(selector, value) {
-    const $select = $(selector);
-    
-    // Buscar opción que matchee
-    const $option = $select.find('option').filter(function() {
-        return $(this).text().includes(value) || 
-               $(this).val() == value;
-    });
-    
-    // Setear y disparar eventos
-    $select.val($option.val());
-    $select.trigger('change');
-    $select.trigger('change.select2');
-}
-```
+`setFieldValue`, `setSelectValue`, `setSelect2Value`.
 
 ---
 
 ## Guía de Modificación
 
-### Caso 1: Añadir un Nuevo Campo Simple
+### Caso 1: Añadir un campo simple
 
-**Ejemplo:** Automatizar el campo "Challenge" (actualmente vacío)
+1. Elegir módulo (`combat-stats.js`, etc.).
+2. Inspeccionar selector en Nivel20.
+3. Usar `setFieldValue` / `setSelect2Value`.
+4. Recargar extensión y probar.
 
-1. **Identificar módulo apropiado:**  
-   → `combat-stats.js` (es una estadística de combate)
+### Caso 2: Nuevo tag en text-cleaner
 
-2. **Obtener selector del campo:**
-   ```javascript
-   // Inspeccionar en nivel20.com
-   const selector = '#creature_challenge_description';
-   ```
+Añadir un `.replace(/\{@item ...\}/g, ...)` en `cleanText`.
 
-3. **Añadir código:**
-   ```javascript
-   // En fillCombatStats()
-   if (monster.challenge) {
-       setFieldValue('#creature_challenge_description', monster.challenge);
-       console.log('✓ Challenge set');
-   }
-   ```
+### Caso 3: Nueva fuente oficial por defecto
 
-4. **Testear:**
-   - Recargar extensión
-   - Seleccionar monstruo
-   - Verificar que se rellena
+Editar `DEFAULT_OFFICIAL_SOURCES` en `bestiary-config.js` (códigos tipo `MM`, `FTD`).
 
----
+### Caso 4: Filtro por CR en el popup
 
-### Caso 2: Añadir un Nuevo Tag al Text Cleaner
-
-**Ejemplo:** Soportar `{@item name}`
-
-1. **Abrir:** `js/utils/text-cleaner.js`
-
-2. **Añadir regex:**
-   ```javascript
-   export function cleanText(text) {
-       return text
-           // ... otros tags
-           .replace(/\{@item ([^}|]+)(?:\|[^}]*)?\}/g, '$1')
-           // ... resto
-   }
-   ```
-
-3. **Testear:**
-   ```javascript
-   cleanText("{@item Longsword|PHB}") // → "Longsword"
-   ```
-
----
-
-
-### Caso 3: Mejorar la Búsqueda del Popup
-
-**Objetivo:** Añadir filtro por CR
-
-1. **Modificar:** `popup.html`
-   ```html
-   <select id="crFilter">
-       <option value="">Todos los CR</option>
-       <option value="0-4">CR 0-4</option>
-       <option value="5-10">CR 5-10</option>
-       <!-- etc -->
-   </select>
-   ```
-
-2. **Modificar:** `popup.js`
-   ```javascript
-   document.getElementById('crFilter').addEventListener('change', filterMonsters);
-   
-   function filterMonsters() {
-       const crFilter = document.getElementById('crFilter').value;
-       
-       bestiaryData
-           .filter(m => {
-               if (!crFilter) return true;
-               const cr = extractCR(m);
-               // Lógica de filtro
-           })
-           .forEach(monster => {
-               // Mostrar monster
-           });
-   }
-   ```
-
+Añadir control en `popup.html` y filtrar el resultado de `bestiaryService.search(...)` en `popup.js`.
 
 ---
 
 ## Workflow de Desarrollo
 
-### Setup Inicial
+### Setup
 
 ```bash
-# 1. Clonar repositorio
 git clone https://github.com/smc98/easy20.git
-cd nivel20-extension
-
-# 2. Crear rama
+cd easy20
 git checkout -b feature/mi-mejora
-
-# 3. Cargar en navegador
-# Chrome: chrome://extensions → Cargar descomprimida
-# Firefox: about:debugging → Cargar temporal
 ```
 
-### Ciclo de Desarrollo
+Cargar descomprimida en Chrome (`chrome://extensions`) o temporal en Firefox (`about:debugging`).
+
+### Ciclo
+
+1. Editar código
+2. Recargar la extensión
+3. Probar en `nivel20.com` → crear criatura
+4. Consola (F12) para logs de módulos / servicios
+5. Repetir
+
+### Git
 
 ```bash
-# 1. Editar archivo (ej: js/modules/basic-info.js)
-
-# 2. Recargar extensión
-# Chrome: Click en icono de recarga en chrome://extensions
-# Firefox: Click en "Recargar" en about:debugging
-
-# 3. Probar en nivel20.com
-# - Abrir ficha de monstruo
-# - Abrir popup
-# - Seleccionar monstruo
-# - Click "Rellenar Formulario"
-# - Verificar cambios
-
-# 4. Ver logs
-# F12 en nivel20.com → Console
-# Buscar logs de tu módulo
-
-# 5. Repetir hasta funcionar
-```
-
-### Git Workflow
-
-```bash
-# Commit frecuente
-git add js/modules/basic-info.js
-git commit -m "feat: add new size mapping"
-
-# Push a tu fork
+git add js/modules/traits.js
+git commit -m "fix: wait for CodeMirror before filling traits"
 git push origin feature/mi-mejora
-
-# Crear Pull Request en GitHub
 ```
 
 ---
 
 ## Testing
 
-### Testing Manual
+### Checklist manual
 
-**Checklist básico:**
 ```
+[ ] Offline / sin fuentes remotas
+    [ ] Carga fallback __bundled__
+[ ] Fuentes oficiales
+    [ ] Activar FTD (u otra), buscar dragón, rellenar
+[ ] Homebrew
+    [ ] Buscar en catálogo Giddy, añadir, buscar monstruo
+    [ ] URL custom (si aplica)
+[ ] Discovery
+    [ ] Buscar criatura de fuente no activa → sugerencia → Activar
 [ ] Monstruo simple (Goblin)
-    [ ] Campos básicos se rellenan
-    [ ] Rasgos aparecen
-    [ ] No hay errores en consola
-
-[ ] Monstruo con spellcasting (Archmage)
-    [ ] Spellcasting se convierte a rasgo
-    [ ] Formato es correcto
-
-[ ] Monstruo legendary (Ancient Red Dragon)
-    [ ] Acciones legendarias se añaden
-    [ ] En la categoría correcta
-    [ ] Nombres y descripciones correctos
-
-[ ] Monstruo con bonus actions (Vecna)
-    [ ] Se añaden correctamente
-    [ ] No se cruzan con otros rasgos
-
+    [ ] Campos básicos + rasgos en el editor
+[ ] Legendary (Ancient Red Dragon)
+    [ ] Acciones legendarias; guarida/regional si aplica
+[ ] Spellcasting (Archmage)
+[ ] Mythic (si hay en fuentes activas)
+[ ] Copy-paste de respaldo visible junto al editor
 ```
 
 ### Debugging
 
-**Ver logs detallados:**
-```javascript
-// Cada módulo tiene logs estructurados
-console.log('--- fillBasicInfo ---');      // Inicio
-console.log('  Setting name...');          // Progreso
-console.log('    ✓ Name set');             // Éxito
-console.log('    ⚠️ Field not found');     // Warning
-console.log('  ❌ Error: ...');             // Error
-```
+Los módulos usan logs estructurados (`✓`, `⚠️`, `❌`). En traits, verificar en consola mensajes de CodeMirror.
 
-**Breakpoints:**
 ```javascript
-// Añadir debugger en código
-export function fillBasicInfo(monster) {
-    debugger; // Pausa aquí
-    console.log('--- fillBasicInfo ---');
-    // ...
-}
-```
-
-**Ver objeto monster:**
-```javascript
-// En consola del navegador
-console.log(JSON.stringify(monster, null, 2));
+debugger; // en fillTraitFields o setDescriptionInEditor
 ```
 
 ---
 
 ## Build y Distribución
 
-### Comprimir Bestiario
+### Fallback gzip
+
+Solo si actualizas el bestiario embebido:
 
 ```bash
-# Solo necesario si actualizas bestiary-data.json
-gzip -9 -k data/bestiary-data.json
-# Genera: data/bestiary-data.json.gz (3.3MB)
+gzip -9 -k js/data/bestiary-data.json
+# → js/data/bestiary-data.json.gz
 ```
 
-### Estructura del Build
+Asegura que la ruta coincida con `BUNDLED_GZ_PATH` en `bestiary-config.js`.
+
+### Empaquetado sugerido
 
 ```
 easy20.zip
 ├── manifest.json
 ├── content.js
-├── popup.html/css/js
+├── popup.html / popup.js / style.css
 ├── icons/
-├── data/
-│   └── bestiary-data.json.gz
-└── js/
-    ├── content.js
-    ├── modules/
-    └── utils/
+├── js/
+│   ├── content.js
+│   ├── data/bestiary-data.json.gz
+│   ├── lib/
+│   ├── services/
+│   ├── modules/
+│   └── utils/
+└── (opcional) README.md, LICENSE, DISCLAIMER.md
 ```
 
----
-
-## Próximos Pasos
-
-Si quieres contribuir, revisa:
-
- **[Issues abiertos](../../issues)** - Bugs conocidos
-
-### Features Prioritarias
-
-1. **Campo de Idiomas**
-2. **Conjuros integrados en nivel20**
-3. **Tema Oscuro** - Experiencia de usuario
-4. **Filtros Avanzados** - Búsqueda por CR, tipo, fuente
-5. **Tests Automatizados** - Garantizar calidad
+Subir versión en `manifest.json` y entrada en [CHANGELOG.md](CHANGELOG.md) antes de publicar la release.
 
 ---
 
-## 📚 Recursos Adicionales
+## Próximos pasos / prioridades
 
-### Documentación del Proyecto
+1. Campo de idiomas
+2. Conjuros enlazados a Nivel20
+3. Filtros avanzados (CR, tipo, fuente)
+4. XPI Firefox firmado
+5. Tests automatizados
 
-- [README.md](README.md) - Guía general
+---
 
-### Tecnologías
+## Recursos
 
+- [README.md](README.md)
+- [CHANGELOG.md](CHANGELOG.md)
 - [Chrome Extensions](https://developer.chrome.com/docs/extensions/)
 - [Firefox WebExtensions](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions)
-- [ES6 Modules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
-- [5etools JSON format](https://github.com/5etools-mirror-1/5etools-mirror-1.github.io)
+- [5etools data](https://github.com/5etools-mirror-3/5etools-src)
+- [Giddy homebrew](https://github.com/TheGiddyLimit/homebrew)
 
-### Comunidad
-
-- [GitHub Discussions](../../discussions) - Preguntas generales
-- [GitHub Issues](../../issues) - Reportar bugs
-- [Pull Requests](../../pulls) - Contribuir código
-
----
-
-**¿Preguntas?** Abre un [Discussion](../../discussions) o un [Issue](../../issues).
-
-**¡Gracias por contribuir!**
+**¿Preguntas?** [Discussions](../../discussions) o [Issues](../../issues).

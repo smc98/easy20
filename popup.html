@@ -8,32 +8,75 @@
 </head>
 <body>
     <div class="container">
-        <h1>📖 Easy20</h1>
-        
-        <div class="search-section">
-            <label for="monsterSearch">Buscar monstruo:</label>
-            <input type="text" id="monsterSearch" placeholder="Escribe el nombre...">
-            <select id="monsterSelect" size="10">
-                <option value="">-- Selecciona un monstruo --</option>
-            </select>
-        </div>
+        <header class="app-header">
+            <h1>Easy20</h1>
+            <nav class="tabs" role="tablist">
+                <button type="button" class="tab active" data-tab="search" role="tab" aria-selected="true">Buscar</button>
+                <button type="button" class="tab" data-tab="sources" role="tab" aria-selected="false">Fuentes</button>
+            </nav>
+        </header>
 
-        <div class="info-section" id="monsterInfo" style="display: none;">
-            <div class="monster-header">
-                <h2 id="monsterName"></h2>
-                <span id="monsterCR" class="cr-badge"></span>
+        <div id="dataStatus" class="data-status" hidden></div>
+
+        <section id="tab-search" class="tab-panel active" role="tabpanel">
+            <div class="panel-card">
+                <label for="monsterSearch">Buscar monstruo</label>
+                <input type="text" id="monsterSearch" placeholder="Nombre de la criatura..." disabled>
+                <select id="monsterSelect" size="8" disabled>
+                    <option value="">-- Cargando bestiario --</option>
+                </select>
+                <div id="discoveryPanel" class="discovery-panel" hidden></div>
             </div>
-            <div class="monster-details" id="monsterDetails"></div>
-        </div>
 
-        <div class="action-section">
-            <button id="fillButton" disabled>Rellenar Formulario</button>
-            <div id="status" class="status"></div>
-        </div>
+            <div class="info-section" id="monsterInfo" hidden>
+                <div class="monster-header">
+                    <h2 id="monsterName"></h2>
+                    <span id="monsterCR" class="cr-badge"></span>
+                </div>
+                <div class="monster-details" id="monsterDetails"></div>
+            </div>
 
-        <div class="help-section">
-            <small>💡 Selecciona un monstruo y haz clic en "Rellenar Formulario" para completar la ficha en nivel20.com</small>
-        </div>
+            <div class="action-section">
+                <button id="fillButton" disabled>Rellenar Formulario</button>
+                <div id="status" class="status"></div>
+            </div>
+        </section>
+
+        <section id="tab-sources" class="tab-panel" role="tabpanel" hidden>
+            <div class="sources-scroll">
+                <div class="panel-card">
+                    <div class="block-header">
+                        <h3>Oficiales</h3>
+                        <span class="block-hint">5etools</span>
+                    </div>
+                    <input type="text" id="officialSearch" class="field" placeholder="Nombre o sigla (Fizban, FTD...)">
+                    <div id="officialSourcesList" class="sources-list"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="block-header">
+                        <h3>Añadir homebrew</h3>
+                    </div>
+                    <input type="text" id="brewSearch" class="field" placeholder="Buscar en catálogo Giddy...">
+                    <div id="brewResultsList" class="plain-list brew-results"></div>
+                    <div class="url-row">
+                        <input type="url" id="customBrewUrl" class="field" placeholder="O pega una URL...">
+                        <button type="button" id="addCustomBrewBtn" class="secondary-btn">Añadir</button>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="block-header">
+                        <h3>Homebrew instalado</h3>
+                    </div>
+                    <div id="installedBrewList" class="plain-list"></div>
+                </div>
+
+                <div class="sources-footer">
+                    <button type="button" id="clearCacheBtn" class="link-btn">Limpiar caché</button>
+                </div>
+            </div>
+        </section>
     </div>
     <script type="module" src="popup.js" defer></script>
 </body>

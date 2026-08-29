@@ -29,12 +29,19 @@ Esta extensión debe ser utilizada **ÚNICAMENTE** por personas que:
 
 ## Fuente de Datos
 
-Los datos incluidos en esta extensión provienen de **5etools**, un proyecto comunitario que recopila contenido de D&D bajo el entendimiento de **fair use educacional**.
+Easy20 obtiene datos de monstruos de:
+
+1. **5etools** (fuentes oficiales descargadas bajo demanda) y su mirror público en GitHub
+2. **Homebrew** del repositorio comunitario [TheGiddyLimit/homebrew](https://github.com/TheGiddyLimit/homebrew) o URLs que el usuario añada voluntariamente
+3. Un **bestiario embebido comprimido** como respaldo offline (subconjunto / caché de arranque)
+
+Esos proyectos comunitarios recopilan contenido de D&D bajo el entendimiento de **fair use educacional**. El homebrew de terceros es responsabilidad de sus autores; Easy20 solo facilita la transcripción a Nivel20.
 
 **Importante:**
-- Los datos se incluyen para facilitar la transcripción
+- Los datos se usan para facilitar la transcripción a tu campaña
 - NO sustituyen la compra de los manuales oficiales
-- Los usuarios deben poseer el contenido original en formato físico o digital
+- Los usuarios deben poseer el contenido original (o tener derecho a usarlo) en formato físico o digital
+- Activar más fuentes o homebrew implica descargas adicionales desde Internet
 
 ## Responsabilidad del Usuario
 
@@ -93,7 +100,7 @@ Esta extensión es **código abierto** para transparencia:
 - La funcionalidad es verificable
 - Los usuarios pueden auditar qué hace la extensión
 
-**Datos incluidos:** Los datos JSON se proporcionan "as-is" bajo la premisa de fair use educacional y uso personal no comercial.
+**Datos:** el bestiario embebido y las descargas remotas se proporcionan / utilizan "as-is" bajo la premisa de fair use educacional y uso personal no comercial.
 
 ## Fair Use
 
@@ -116,9 +123,9 @@ Esta extensión es una **herramienta de productividad** para DMs que ya poseen e
 
 ---
 
-**Versión:** 1.0.0
+**Versión:** 1.2.0
 **Fecha:** 2026
-**Estado:** Distribución privada no comercial
+**Estado:** Distribución comunitaria no comercial
 
 ---
 

@@ -16,6 +16,7 @@ Extensión para navegador que automatiza el rellenado de fichas de monstruos en 
 Ahorra horas de trabajo manual importando criaturas de D&D con un solo click.
 
 [![Licencia MIT](https://img.shields.io/badge/Licencia-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Versión](https://img.shields.io/badge/Versión-1.2.0-blue.svg?style=for-the-badge)](CHANGELOG.md)
 [![Firefox](https://img.shields.io/badge/Firefox-Próximamente-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white)](#instalación)
 [![Chrome](https://img.shields.io/badge/Chrome-Manual-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](#instalación)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Apoyar-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/smc98)
@@ -26,36 +27,65 @@ Ahorra horas de trabajo manual importando criaturas de D&D con un solo click.
 
 ---
 
+## Novedades en v1.2
+
+- **Bestiarios dinámicos**: oficiales de 5etools + homebrew (catálogo Giddy y URL propia)
+- **Descubrimiento de fuentes**: si buscas una criatura y no aparece, Easy20 sugiere activar la fuente donde está
+- **Rasgos y acciones en el editor**: relleno directo del editor de Nivel20 (EasyMDE/CodeMirror), con copy-paste de respaldo
+- **Caché local**: IndexedDB para no redescargar bestiarios en cada sesión
+
+Ver el [CHANGELOG](CHANGELOG.md) completo.
+
+---
+
 ## Características
 
 ### Criaturas en segundos
 
-Rellena automáticamente la mayoría de campos de la ficha de monstruo en Nivel20 y acelera la adaptación de acciones y rasgos:
+Rellena automáticamente la mayoría de campos de la ficha de monstruo en Nivel20:
 
 - ✅ Información básica (nombre, tipo, tamaño, alineamiento)
 - ✅ Puntuaciones de característica (STR, DEX, CON, INT, WIS, CHA)
 - ✅ Estadísticas de combate (CA, PG, CR, iniciativa)
 - ✅ Velocidades (caminar, volar, nadar, etc.)
 - ✅ Tiradas de salvación y habilidades
-- ✅ Rasgos, acciones, acciones adicionales, reacciones
+- ✅ Rasgos, acciones, acciones adicionales, reacciones (incluido texto en el editor)
 - ✅ Acciones legendarias y acciones míticas
 - ✅ Spellcasting
+- ✅ Acciones de guarida / efectos regionales (cuando vienen de 5etools)
 
 ### Compatible con D&D 2024
 
 Puedes traer criaturas de bestiarios de 5e a tu campaña de D&D 2024 o traer criaturas de bestiarios de 2024 a tu campaña de 5e.
 
-### Búsqueda Rápida
+### Bestiarios oficiales y homebrew
 
-Encuentra cualquier monstruo en segundos con búsqueda instantánea.
+Easy20 carga criaturas en tiempo real desde **5etools** y homebrew del repositorio [Giddy](https://github.com/TheGiddyLimit/homebrew), con caché en IndexedDB. Si no hay red o fallan las fuentes remotas, usa el bestiario embebido como respaldo.
 
-### Copy-Paste Sencillo
+En la pestaña **Fuentes**:
 
-Para campos no automatizables, la extensión proporciona cajas con el texto listo para copiar con un click.
+1. **Oficiales** — activa manuales y aventuras (nombre completo + sigla; filtro por ambos)
+2. **Añadir homebrew** — busca en el catálogo Giddy (solo packs con monstruos) o pega una URL de homebrew
+3. **Homebrew instalado** — gestiona lo que ya tienes cargado
+4. **Limpiar caché** — fuerza una nueva descarga de datos
+
+Por defecto vienen activas fuentes básicas (p. ej. Monster Manual / XMM). El resto se activa bajo demanda.
+
+### Descubrimiento al buscar
+
+Si escribes un nombre y no está en las fuentes activas, Easy20 consulta el índice global de 5etools y te propone **activar la fuente** donde aparece la criatura.
+
+### Búsqueda rápida
+
+Encuentra monstruos entre todas las fuentes activas con búsqueda instantánea.
+
+### Editor + copy-paste de respaldo
+
+Las descripciones de rasgos y acciones se escriben en el editor de Nivel20. Si algo falla (cambio de la web, timeout), siguen apareciendo cajas de copy-paste para pegar a mano.
 
 <div align="center">
 <img src="./img/popup.png" alt="Popup de la extensión" style="max-width: 600px;" />
-<p><em>Popup con búsqueda de monstruos</em></p>
+<p><em>Popup con búsqueda de monstruos y pestaña de fuentes</em></p>
 </div>
 
 ---
@@ -115,36 +145,38 @@ Estamos trabajando en métodos de distribución permanente:
 
 ## Uso
 
-### Abre Nivel20
+### 1. Abre Nivel20
 
-Ve a [nivel20.com](https://nivel20.com) en una campaña que dirijas, ve a la pestaña "Bestiario" y dale a "Crear Nuevo".
+Ve a [nivel20.com](https://nivel20.com) en una campaña que dirijas, pestaña **Bestiario** → **Crear Nuevo**.
 
-### Abre la Extensión
+### 2. Abre la extensión
 
-Click en el icono de la extensión en tu navegador.
+Click en el icono de Easy20 en tu navegador.
 
-### Busca la criatura
+### 3. (Opcional) Activa fuentes
 
-Escribe el nombre en inglés (ej: "Goblin", "Ancient Red Dragon").
+En la pestaña **Fuentes**, marca los manuales que necesites o añade homebrew. La primera carga puede tardar unos segundos (luego se cachea).
 
-### Completa el Formulario
+### 4. Busca la criatura
 
-Click en "Rellenar Formulario" y espera unos segundos.
+En **Buscar**, escribe el nombre en inglés (ej: `Goblin`, `Ancient Red Dragon`). Si no aparece, mira el panel de sugerencias para activar su fuente.
 
-### Copy-Paste de Rasgos y Acciones
+### 5. Rellena el formulario
 
-Para las descripciones, usa las cajas de copy-paste que aparecen automáticamente.
+Click en **Rellenar Formulario** y espera a que terminen los rasgos (se añaden uno a uno).
+
+### 6. Revisa y guarda
+
+Comprueba el editor de rasgos/acciones. Si algún texto no se ve en el editor, usa la caja de **Respaldo** / **Copiar** junto al campo.
 
 <div align="center">
 <img src="./img/rasgo.png" alt="Copy-paste de rasgos" style="max-width: 600px;" />
-<p><em>Cajas de copy-paste para descripciones</em></p>
+<p><em>Respaldo copy-paste si el editor no se actualiza</em></p>
 </div>
-
 
 ---
 
 ## ⚠️ Aviso Legal
-
 
 Ver [DISCLAIMER.md](DISCLAIMER.md) para información legal completa.
 
@@ -165,9 +197,11 @@ Ver [DISCLAIMER.md](DISCLAIMER.md) para información legal completa.
 ### Áreas de Mejora
 
 - **Campo de Idiomas**
-- **Conjuros enlazados a nivel20**
+- **Conjuros enlazados a Nivel20**
 - **Filtros** (por CR, tipo, fuente)
+- **Instalación persistente en Firefox** (XPI)
 
+Ver [BUILD.md](BUILD.md) para la guía de desarrollo.
 
 ---
 
@@ -178,6 +212,7 @@ Ver [DISCLAIMER.md](DISCLAIMER.md) para información legal completa.
 El código de esta extensión está bajo [Licencia MIT](LICENSE).
 
 Puedes:
+
 - ✅ Usar libremente
 - ✅ Modificar
 - ✅ Distribuir
@@ -188,23 +223,21 @@ Puedes:
 
 ## Arquitectura Técnica
 
-Esta extensión usa una arquitectura modular moderna:
-
-- **ES6 Modules** nativos
-- **Script injection** para bypass de limitaciones MV3
-- **14 módulos** separados
-- **Sin build step** - edita y recarga
+- **ES6 Modules** nativos (sin bundler)
+- **Script injection** para Manifest V3
+- **Servicios de bestiario** (`js/services/`) — carga remota, caché, homebrew, descubrimiento
+- **Módulos de relleno** (`js/modules/`) — campos de la ficha en Nivel20
 - **Compatible** Chrome + Firefox
 
 Ver [BUILD.md](BUILD.md) para detalles técnicos.
 
-
 ## Créditos
 
-- **D&D** - [Wizards of the Coast](https://dnd.wizards.com)
-- **5etools** - Fuente de datos del bestiario
-- **nivel20.com** - Plataforma de gestión de campañas
-- **Comunidad open source** - Por las herramientas y librerías
+- **D&D** — [Wizards of the Coast](https://dnd.wizards.com)
+- **5etools** — Datos de bestiario oficial y formato JSON
+- **TheGiddyLimit/homebrew** — Catálogo de homebrew
+- **nivel20.com** — Plataforma de gestión de campañas
+- **Comunidad open source** — Herramientas y librerías
 
 ---
 
@@ -212,14 +245,25 @@ Ver [BUILD.md](BUILD.md) para detalles técnicos.
 
 - **Bugs:** [GitHub Issues](../../issues)
 - **Ideas:** [GitHub Discussions](../../discussions)
+- **Cambios:** [CHANGELOG.md](CHANGELOG.md)
 - **Docs:** Ver archivos `.md` en el repo
 
 ---
 
 ## Roadmap
 
-### v1.1 (Próximo)
+### Hecho en v1.2
+
+- [x] Bestiarios dinámicos (oficial + homebrew)
+- [x] Descubrimiento de fuentes al buscar
+- [x] Relleno del editor EasyMDE/CodeMirror
+- [x] Caché IndexedDB + fallback embebido
+
+### Próximo
+
 - [ ] Instalación persistente Firefox (XPI firmado)
+- [ ] Filtros avanzados (CR, tipo, fuente)
+- [ ] Campo de idiomas automatizado
 
 ---
 

@@ -49,62 +49,74 @@ export function fillMythicActions(mythicActions) {
         return;
     }
     
-    // Establecer el texto en el textarea
     notesTextarea.value = mythicText;
     notesTextarea.dispatchEvent(new Event('input', { bubbles: true }));
-    console.log('✓ Mythic actions text set in textarea');
-    
-    // Buscar el contenedor SimpleMDE
-    const container = notesTextarea.nextElementSibling;
-    
-    if (container && container.classList && container.classList.contains('EasyMDEContainer')) {
-        console.log('Found SimpleMDE container for notes');
-        
-        // Añadir cuadro de copy-paste
-        const formGroup = notesTextarea.closest('.form-group');
-        
-        if (formGroup && !formGroup.querySelector('.auto-fill-mythic')) {
-            const mythicBox = document.createElement('div');
-            mythicBox.className = 'alert alert-info auto-fill-mythic';
-            mythicBox.style.marginTop = '10px';
-            mythicBox.style.fontSize = '0.9em';
-            mythicBox.innerHTML = `
+    notesTextarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const cm = notesTextarea.closest('.form-group')?.querySelector('.CodeMirror')?.CodeMirror
+        || document.querySelector('#creature_notes')?.nextElementSibling?.querySelector?.('.CodeMirror')?.CodeMirror
+        || notesTextarea.parentElement?.querySelector('.CodeMirror')?.CodeMirror;
+
+    let editorFilled = false;
+    if (cm) {
+        cm.setValue(mythicText);
+        if (typeof cm.save === 'function') cm.save();
+        else notesTextarea.value = mythicText;
+        cm.refresh?.();
+        editorFilled = cm.getValue() === mythicText;
+        console.log(editorFilled ? '✓ Mythic text set via CodeMirror' : '⚠️ CodeMirror set with mismatch');
+    } else {
+        console.log('✓ Mythic actions text set in textarea (no CodeMirror yet)');
+    }
+
+    // Buscar el contenedor EasyMDE / form-group para el respaldo copy-paste
+    const formGroup = notesTextarea.closest('.form-group');
+
+    if (formGroup && !formGroup.querySelector('.auto-fill-mythic')) {
+        const mythicBox = document.createElement('div');
+        mythicBox.className = editorFilled
+            ? 'alert alert-secondary auto-fill-mythic'
+            : 'alert alert-info auto-fill-mythic';
+        mythicBox.style.marginTop = '10px';
+        mythicBox.style.fontSize = '0.9em';
+        const title = editorFilled
+            ? '📜 Respaldo (si el editor de notas no se actualizó):'
+            : '📜 Acciones Míticas para copiar:';
+        mythicBox.innerHTML = `
                 <div style="margin-bottom: 8px;">
-                    <strong>📜 Acciones Míticas para copiar:</strong>
+                    <strong>${title}</strong>
                     <button type="button" class="btn btn-sm btn-secondary float-right copy-mythic-btn" style="padding: 2px 8px;">
                         Copiar
                     </button>
                 </div>
                 <div style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; border-radius: 4px; max-height: 300px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; color: #212529 !important;">${mythicText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                <small style="display: block; margin-top: 5px; color: #004085 !important;">
-                    Haz click en el editor de arriba y pega (Ctrl+V)
+                <small style="display: block; margin-top: 5px;">
+                    Haz click en el editor de arriba y pega (Ctrl+V) si hace falta
                 </small>
             `;
-            
-            // Handler para copiar
-            const copyBtn = mythicBox.querySelector('.copy-mythic-btn');
-            copyBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                navigator.clipboard.writeText(mythicText).then(() => {
-                    copyBtn.textContent = '✓ Copiado';
-                    copyBtn.classList.remove('btn-secondary');
-                    copyBtn.classList.add('btn-success');
-                    
-                    setTimeout(() => {
-                        copyBtn.textContent = 'Copiar';
-                        copyBtn.classList.remove('btn-success');
-                        copyBtn.classList.add('btn-secondary');
-                    }, 2000);
-                }).catch(err => {
-                    console.error('Error copying:', err);
-                });
+
+        const copyBtn = mythicBox.querySelector('.copy-mythic-btn');
+        copyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            navigator.clipboard.writeText(mythicText).then(() => {
+                copyBtn.textContent = '✓ Copiado';
+                copyBtn.classList.remove('btn-secondary');
+                copyBtn.classList.add('btn-success');
+
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copiar';
+                    copyBtn.classList.remove('btn-success');
+                    copyBtn.classList.add('btn-secondary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Error copying:', err);
             });
-            
-            formGroup.appendChild(mythicBox);
-            console.log('✓ Added copy-paste box for mythic actions');
-        }
+        });
+
+        formGroup.appendChild(mythicBox);
+        console.log('✓ Added copy-paste fallback for mythic actions');
     }
     
     console.log('--- fillMythicActions completed ---');

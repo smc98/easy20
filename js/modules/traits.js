@@ -129,61 +129,55 @@ function addTraitsWithCallback(traits, category, onComplete) {
     }
     
     // Función recursiva para añadir rasgos UNO POR UNO esperando que termine el anterior
-    function addNextTrait(index) {
+    async function addNextTrait(index) {
         if (index >= traits.length) {
             console.log(`  ✓ All ${traits.length} ${category} added successfully`);
-            // Llamar al callback cuando todos los rasgos de esta categoría estén completos
             if (onComplete) onComplete();
             return;
         }
-        
+
         const trait = traits[index];
         console.log(`  Adding ${category} #${index + 1}: ${trait.name}`);
-        
-        // CAPTURAR los elementos ANTES del click
+
         const beforeFields = Array.from(document.querySelectorAll('.creature-trait-fields'));
-        const beforeCount = beforeFields.length;
-        
-        // Simular click
         addButton.click();
-        
-        // Esperar a que se cree el campo y se inicialice SimpleMDE
-        setTimeout(() => {
-            // CAPTURAR los elementos DESPUÉS del click
+
+        const newField = await waitForNewTraitField(beforeFields);
+        if (newField) {
+            console.log(`    ✓ New trait field identified`);
+            await fillTraitFields(trait, category, index, newField);
+        } else {
+            console.warn(`    ⚠️ Could not identify new trait field`);
             const afterFields = Array.from(document.querySelectorAll('.creature-trait-fields'));
-            const afterCount = afterFields.length;
-            
-            console.log(`    Fields before: ${beforeCount}, after: ${afterCount}`);
-            
-            // Encontrar el elemento NUEVO (el que no estaba antes)
-            const newField = afterFields.find(field => !beforeFields.includes(field));
-            
-            if (newField) {
-                console.log(`    ✓ New trait field identified`);
-                fillTraitFields(trait, category, index, newField);
-                
-                // Esperar 1 segundo más para asegurar que todo se procesó
-                setTimeout(() => {
-                    // Procesar el SIGUIENTE rasgo
-                    addNextTrait(index + 1);
-                }, 1000);
-            } else {
-                console.warn(`    ⚠️ Could not identify new trait field`);
-                console.log(`    Trying fallback: using last field`);
-                // Fallback: usar el último field
-                if (afterFields.length > 0) {
-                    fillTraitFields(trait, category, index, afterFields[afterFields.length - 1]);
-                    setTimeout(() => addNextTrait(index + 1), 1000);
-                } else {
-                    // Si falla completamente, continuar con el siguiente
-                    addNextTrait(index + 1);
-                }
+            if (afterFields.length > 0) {
+                await fillTraitFields(trait, category, index, afterFields[afterFields.length - 1]);
             }
-        }, 3000); // 3 segundos de espera para que se cree el field
+        }
+
+        setTimeout(() => addNextTrait(index + 1), 400);
     }
-    
-    // Iniciar el proceso con el primer rasgo
+
     addNextTrait(0);
+}
+
+function waitForNewTraitField(beforeFields, timeoutMs = 6000) {
+    return new Promise(resolve => {
+        const start = Date.now();
+        const tick = () => {
+            const afterFields = Array.from(document.querySelectorAll('.creature-trait-fields'));
+            const newField = afterFields.find(field => !beforeFields.includes(field));
+            if (newField) {
+                resolve(newField);
+                return;
+            }
+            if (Date.now() - start >= timeoutMs) {
+                resolve(null);
+                return;
+            }
+            setTimeout(tick, 100);
+        };
+        tick();
+    });
 }
 
 // Versión legacy sin callback (por compatibilidad, aunque ya no se usa)
@@ -191,23 +185,124 @@ export function addTraits(traits, category) {
     addTraitsWithCallback(traits, category, null);
 }
 
+/** Espera a que EasyMDE/CodeMirror esté listo en el bloque de rasgo. */
+function waitForCodeMirror(traitField, timeoutMs = 5000) {
+    return new Promise(resolve => {
+        const start = Date.now();
+        const tick = () => {
+            const cm = traitField.querySelector('.CodeMirror')?.CodeMirror;
+            if (cm) {
+                resolve(cm);
+                return;
+            }
+            if (Date.now() - start >= timeoutMs) {
+                resolve(null);
+                return;
+            }
+            setTimeout(tick, 100);
+        };
+        tick();
+    });
+}
+
+/**
+ * Rellena el editor EasyMDE vía CodeMirror (el textarea está oculto).
+ * @returns {boolean} true si CodeMirror aceptó el valor
+ */
+function setDescriptionInEditor(traitField, descriptionTextarea, description) {
+    descriptionTextarea.value = description;
+    descriptionTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    descriptionTextarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const cm = traitField.querySelector('.CodeMirror')?.CodeMirror;
+    if (!cm) {
+        console.warn('    ⚠️ CodeMirror not ready; textarea only');
+        return false;
+    }
+
+    cm.setValue(description);
+    if (typeof cm.save === 'function') {
+        cm.save();
+    } else {
+        descriptionTextarea.value = description;
+    }
+    cm.refresh?.();
+
+    const ok = cm.getValue() === description;
+    console.log(ok ? '    ✓ Set via CodeMirror + save()' : '    ⚠️ CodeMirror set, value mismatch');
+    return ok;
+}
+
+function addCopyPasteFallback(traitField, description, editorFilled) {
+    const fieldContainer = traitField.querySelector('.col-12')
+        || traitField.querySelector('.form-group.text')
+        || traitField;
+
+    if (!fieldContainer || fieldContainer.querySelector('.auto-fill-description')) {
+        return;
+    }
+
+    const descBox = document.createElement('div');
+    descBox.className = editorFilled
+        ? 'alert alert-secondary auto-fill-description'
+        : 'alert alert-warning auto-fill-description';
+    descBox.style.marginTop = '10px';
+    descBox.style.fontSize = '0.9em';
+    const title = editorFilled
+        ? '📋 Respaldo (si el editor no se actualizó):'
+        : '📋 Descripción para copiar:';
+    descBox.innerHTML = `
+        <div style="margin-bottom: 8px;">
+            <strong>${title}</strong>
+            <button type="button" class="btn btn-sm btn-secondary float-right copy-desc-btn" style="padding: 2px 8px;">
+                Copiar
+            </button>
+        </div>
+        <div style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; border-radius: 4px; max-height: 150px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; color: #212529 !important;">${description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        <small style="display: block; margin-top: 5px;">
+            Haz click en el editor de arriba y pega (Ctrl+V) si hace falta
+        </small>
+    `;
+
+    const copyBtn = descBox.querySelector('.copy-desc-btn');
+    copyBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        navigator.clipboard.writeText(description).then(() => {
+            copyBtn.textContent = '✓ Copiado';
+            copyBtn.classList.remove('btn-secondary');
+            copyBtn.classList.add('btn-success');
+
+            setTimeout(() => {
+                copyBtn.textContent = 'Copiar';
+                copyBtn.classList.remove('btn-success');
+                copyBtn.classList.add('btn-secondary');
+            }, 2000);
+        }).catch(err => {
+            console.error('Error copying:', err);
+        });
+    });
+
+    fieldContainer.appendChild(descBox);
+    console.log('    ✓ Added copy-paste fallback box');
+}
+
 // Función para rellenar campos de un rasgo individual
-export function fillTraitFields(trait, category, index, traitField) {
+export async function fillTraitFields(trait, category, index, traitField) {
     console.log(`  Filling fields for: ${trait.name}`);
-    
+
     try {
-        // Nombre - buscar el PRIMER input de nombre dentro de este traitField
-        // Excluimos solo los de actionbar_actions (botones personalizados)
         const nameInputs = traitField.querySelectorAll('input[name*="[name]"]');
         let nameInput = null;
-        
+
         for (let input of nameInputs) {
             if (!input.name.includes('actionbar_actions')) {
                 nameInput = input;
                 break;
             }
         }
-        
+
         if (nameInput) {
             const cleanName = cleanText(trait.name || 'Sin nombre');
             nameInput.value = cleanName;
@@ -217,79 +312,27 @@ export function fillTraitFields(trait, category, index, traitField) {
         } else {
             console.warn(`    ⚠️ Name input not found`);
         }
-        
-        // Descripción - buscar el PRIMER textarea dentro de este traitField
+
         const textareas = traitField.querySelectorAll('textarea[name*="[description]"]');
-        let descriptionTextarea = null;
-        
-        if (textareas.length > 0) {
-            descriptionTextarea = textareas[0];
-        }
-        
+        const descriptionTextarea = textareas.length > 0 ? textareas[0] : null;
+
         if (!descriptionTextarea) {
             console.warn(`    ⚠️ Description textarea not found`);
             return;
         }
-        
+
         const description = formatTraitDescription(trait);
         console.log(`    Setting description (${description.length} chars)...`);
-        
-        // Establecer en el textarea
-        descriptionTextarea.value = description;
-        descriptionTextarea.dispatchEvent(new Event('input', { bubbles: true }));
-        console.log(`    ✓ Set in textarea`);
-        
-        // Añadir cuadro de copy-paste para SimpleMDE
-        const fieldContainer = traitField.querySelector('.col-12');
-        if (fieldContainer && !fieldContainer.querySelector('.auto-fill-description')) {
-            const descBox = document.createElement('div');
-            descBox.className = 'alert alert-warning auto-fill-description';
-            descBox.style.marginTop = '10px';
-            descBox.style.fontSize = '0.9em';
-            descBox.innerHTML = `
-                <div style="margin-bottom: 8px;">
-                    <strong>📋 Descripción para copiar:</strong>
-                    <button type="button" class="btn btn-sm btn-secondary float-right copy-desc-btn" style="padding: 2px 8px;">
-                        Copiar
-                    </button>
-                </div>
-                <div style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; border-radius: 4px; max-height: 150px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; color: #212529 !important;">${description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                <small style="display: block; margin-top: 5px; color: #ffffff !important;">
-                    Haz click en el editor de arriba y pega (Ctrl+V)
-                </small>
-            `;
-            
-            const copyBtn = descBox.querySelector('.copy-desc-btn');
-            copyBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                navigator.clipboard.writeText(description).then(() => {
-                    copyBtn.textContent = '✓ Copiado';
-                    copyBtn.classList.remove('btn-secondary');
-                    copyBtn.classList.add('btn-success');
-                    
-                    setTimeout(() => {
-                        copyBtn.textContent = 'Copiar';
-                        copyBtn.classList.remove('btn-success');
-                        copyBtn.classList.add('btn-secondary');
-                    }, 2000);
-                }).catch(err => {
-                    console.error('Error copying:', err);
-                });
-            });
-            
-            fieldContainer.appendChild(descBox);
-            console.log(`    ✓ Added copy-paste box`);
-        }
-        
-        // Intentar rellenar campos de ataque si es una acción
+
+        await waitForCodeMirror(traitField);
+        const editorFilled = setDescriptionInEditor(traitField, descriptionTextarea, description);
+        addCopyPasteFallback(traitField, description, editorFilled);
+
         if (category === 'actions') {
             fillAttackFields(traitField, trait);
         }
-        
+
         console.log(`  ✓ ${trait.name} completed`);
-        
     } catch (error) {
         console.error(`  ❌ Error filling trait fields:`, error.message);
     }
