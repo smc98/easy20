@@ -7,6 +7,14 @@ La versión coincide con `manifest.json`.
 
 ---
 
+## [1.2.1] — 2026-10
+
+### Corregido
+
+- **Resolución de `_copy` / `_mod`**: los stubs de aventuras (p. ej. *Turn of Fortune's Wheel*) heredan stats de MM/MPP y aplican reemplazos de texto/acciones antes del relleno. Sin esto, las fichas salían con valores por defecto vacíos.
+
+---
+
 ## [1.2.0] — 2026-08
 
 Release orientada a uso público: bestiarios conectados a internet, acceso a homebrew y completado real del editor de rasgos.

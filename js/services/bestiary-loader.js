@@ -152,3 +152,30 @@ export async function getMonsterFromSource(sourceKey, monsterIndex) {
 
     return { monster, legendaryGroups: data.legendaryGroups || [] };
 }
+
+/**
+ * Busca un monstruo por nombre+fuente (p. ej. destino de `_copy`).
+ * Carga la fuente oficial bajo demanda si hace falta.
+ */
+export async function findMonsterByRef(name, sourceCode) {
+    if (!name || !sourceCode) return null;
+
+    const sourceKey = officialSourceKey(sourceCode);
+    let data = await cache.getSourceData(sourceKey);
+
+    if (!data) {
+        try {
+            await loadOfficialSource(sourceCode);
+            data = await cache.getSourceData(sourceKey);
+        } catch (err) {
+            console.warn(`[Easy20] No se pudo cargar dependencia ${sourceCode}:`, err.message);
+            return null;
+        }
+    }
+
+    if (!data?.monsters?.length) return null;
+
+    return data.monsters.find(m => m.name === name && m.source === sourceCode)
+        || data.monsters.find(m => m.name === name)
+        || null;
+}

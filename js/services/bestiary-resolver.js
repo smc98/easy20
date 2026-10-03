@@ -1,6 +1,8 @@
 import { LEGENDARY_GROUPS_PATH } from './bestiary-config.js';
 import * as cache from './bestiary-cache.js';
 import { fetchOfficialJson } from './bestiary-fetch.js';
+import { findMonsterByRef } from './bestiary-loader.js';
+import { resolveMonsterCopy } from './bestiary-copy.js';
 
 const AUX_LEGENDARY_KEY = 'legendarygroups';
 
@@ -25,8 +27,7 @@ async function getOfficialLegendaryGroups() {
     return payload;
 }
 
-/** Completa guarida/regional cuando el monstruo solo trae una referencia. */
-export async function resolveMonsterForFill(monster, sourceContext = {}) {
+async function resolveLegendaryGroup(monster, sourceContext = {}) {
     const group = monster.legendaryGroup;
     if (!group || hasInlineLegendaryData(group) || !group.name) {
         return monster;
@@ -49,4 +50,10 @@ export async function resolveMonsterForFill(monster, sourceContext = {}) {
     }
 
     return { ...monster, legendaryGroup: resolved };
+}
+
+/** Completa `_copy`/`_mod` y guarida/regional antes del relleno. */
+export async function resolveMonsterForFill(monster, sourceContext = {}) {
+    const withCopy = await resolveMonsterCopy(monster, findMonsterByRef);
+    return resolveLegendaryGroup(withCopy, sourceContext);
 }

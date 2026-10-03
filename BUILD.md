@@ -142,7 +142,8 @@ Capa del popup: no corre en la página de Nivel20.
 | `bestiary-fetch.js` | `fetch` con timeout; prueba CDN y luego mirror GitHub |
 | `bestiary-cache.js` | IndexedDB (metas + payloads por fuente) |
 | `bestiary-loader.js` | Descarga e indexación oficial / brew / custom / bundled |
-| `bestiary-resolver.js` | Inline de `legendaryGroup` desde `legendarygroups.json` |
+| `bestiary-copy.js` | Resolución de stubs `_copy` / `_mod` (herencia MM/MPP, replaceTxt/Arr…) |
+| `bestiary-resolver.js` | `_copy` + inline de `legendaryGroup` desde `legendarygroups.json` |
 | `bestiary-service.js` | API del popup: prefs, search, get monster, toggle fuentes |
 | `brew-catalog.js` | Índice oficial + catálogo Giddy (solo props con `monster`) |
 | `discovery-index.js` | `search/index.json` filtrado a criaturas (`c === 1`), TTL 24 h |
@@ -152,8 +153,9 @@ Capa del popup: no corre en la página de Nivel20.
 1. Al abrir el popup se restauran preferencias (`chrome.storage.local`) y fuentes en caché.
 2. Si no hay fuentes remotas disponibles → carga `__bundled__` desde el gzip.
 3. La búsqueda trabaja sobre un **índice ligero** (nombre + fuente + id).
-4. Al seleccionar monstruo se resuelve el JSON completo (lazy) y se aplica `resolveMonsterForFill`.
-5. El monstruo se envía al content script para rellenar la ficha.
+4. Al seleccionar monstruo se resuelve el JSON completo (lazy) y se aplica `resolveMonsterForFill` (`_copy`/`_mod` + `legendaryGroup`).
+5. Si el stub apunta a otra fuente oficial (p. ej. ToFW → MM), esa dependencia se carga bajo demanda.
+6. El monstruo se envía al content script para rellenar la ficha.
 
 ### Permisos de red
 
